@@ -1,0 +1,35 @@
+name: Build APK
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      # Creates the android/ folder and pubspec.yaml (keeps your lib/ files)
+      - name: Create Flutter project files
+        run: |
+          flutter create --project-name duodeen --org com.duodeen --platforms android .
+          rm -f test/widget_test.dart
+          sed -i 's/android:label="duodeen"/android:label="DuoDeen"/' android/app/src/main/AndroidManifest.xml
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DuoDeen-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
