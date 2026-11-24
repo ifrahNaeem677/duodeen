@@ -1,27 +1,36 @@
-# DuoDeen: How to run it (Windows, VS Code, Android)
+# DuoDeen V3: setup
 
-## One-time setup (about 1 hour, mostly downloads)
-1. Install **VS Code**: https://code.visualstudio.com
-2. Install **Android Studio**: https://developer.android.com/studio
-   - Open it once, click Next through the setup wizard (it downloads the Android SDK).
-   - More Actions → SDK Manager → SDK Tools tab → tick **Android SDK Command-line Tools** → Apply.
-3. Install **Flutter**: in VS Code, open Extensions (Ctrl+Shift+X), install **Flutter** (by Dart Code).
-   Then Ctrl+Shift+P → type `Flutter: New Project`. VS Code will offer **Download SDK**, so click it and pick a folder like `C:\src`.
-   When asked, click **Add SDK to PATH**. Restart VS Code.
-4. Open a terminal in VS Code (Ctrl+`) and run:
-   ```
-   flutter doctor --android-licenses
-   ```
-   Type `y` and Enter for every question. Then run `flutter doctor`; Flutter and Android toolchain should show ✓.
+Supabase URL + publishable key are already in `lib/main.dart`. Never put the secret key in the app.
 
-## Create the project
-5. Ctrl+Shift+P → `Flutter: New Project` → **Application** → choose a folder → name it `duodeen`.
-6. Unzip this download. Copy its `lib` folder into your new `duodeen` folder and **Replace** when asked.
-7. Delete the file `test/widget_test.dart` (it refers to the old sample app).
+## 1. Supabase (one time)
+SQL Editor → New query → paste **all** of `supabase/duodeen_v3.sql` → **Run**.
+It keeps profiles / pairs / daily_entries and adds:
+- `permanent_skills` table (60-day skill, locked until finished)
+- `messages` table (chat + snaps)
+- Storage bucket `snaps` (public read, logged-in users upload)
+- columns `read_book`, `skill_done`, `tasbeeh_count` on daily_entries
+- score V3 (max 120 = old 100 + Read Book 10 + Work On My Skill 10)
+- realtime for live updates, safe pairing functions
 
-## Run on Android
-8. **Real phone:** Settings → About phone → tap *Build number* 7 times → back to Settings → Developer options → turn on **USB debugging**. Plug in with USB and tap **Allow**.
-   **Or emulator:** Android Studio → More Actions → Virtual Device Manager → Create device → Pixel → Next → download a system image → Finish → ▶ Play.
-9. In VS Code, click the device name at the bottom-right corner and pick your phone or emulator.
-10. Open `lib/main.dart` and press **F5**. The first build takes 3–5 minutes; later ones are fast.
-    While it runs, save a file (Ctrl+S) to see changes instantly (hot reload).
+## 2. Upload to GitHub
+1. Repo → **Add file → Upload files** → drag `android`, `lib`, `tool`, `supabase`, `pubspec.yaml`, `README.md` → **Commit**.
+   The `android` folder contains the build fix (desugaring, Java 17, minSdk 24, internet permission).
+2. Build file (GitHub skips the `.github` folder when dragging):
+   open `.github/workflows/build-apk.yml` in the repo → ✏️ Edit → select all → paste this zip's
+   `.github/workflows/build-apk.yml` → Commit.
+   (If your Actions run is already named "Build APK V2", that also works. The V3 build fix is in `tool/patch_android.py`.)
+3. **Actions** → green ✓ → **Artifacts → DuoDeen-APK** → install `app-release.apk`.
+
+## Build fix (built in)
+`android/app/build.gradle.kts` is now part of the project, so the fix applies with ANY build file.
+Also:
+`tool/patch_android.py` runs in the GitHub build after `flutter create` and sets in
+`android/app/build.gradle.kts`: `isCoreLibraryDesugaringEnabled = true`, Java/Kotlin 17,
+`coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")`, plus INTERNET permission.
+Building on your own computer? Run `python tool/patch_android.py` once after `flutter create .`.
+
+## 3. Test V3
+1. Both partners log in → each one must set their own skill (full screen, cannot skip).
+2. Home: My Skill card → **Done Today** → +10 pts, streak +1. Partner sees it in "Partner's Skill".
+3. Add a goal → partner sees it live in "Partner's Goals Today" (read-only).
+4. Chat tab → send a message and a Snap (camera or gallery) → tap the snap to view full screen.
