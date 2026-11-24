@@ -3,6 +3,7 @@
 Adds what DuoDeen V2 needs on Android:
   * core library desugaring (required by flutter_local_notifications)
   * Java 17 compile options (Java + Kotlin)
+  * lint never fails the release build
   * INTERNET permission (release apps need it to reach Supabase)
   * notification permissions + receivers
   * app name "DuoDeen"
@@ -65,6 +66,15 @@ if "VERSION_17" not in g:
     )
     g = re.sub(r"compileOptions\s*\{", lambda m: m.group(0) + java_lines, g, count=1)
 
+# 2b) lint must never fail the release build (image_picker_android lint crash)
+if "checkReleaseBuilds" not in g:
+    lint_block = (
+        "\n    lint {\n        abortOnError = false\n        checkReleaseBuilds = false\n    }\n"
+        if kotlin_dsl else
+        "\n    lint {\n        abortOnError false\n        checkReleaseBuilds false\n    }\n"
+    )
+    g = re.sub(r"android\s*\{", lambda m: m.group(0) + lint_block, g, count=1)
+
 # 3) desugar library dependency
 if "desugar_jdk_libs" not in g:
     g = g.rstrip() + "\n\ndependencies {\n    " + dep_line + "\n}\n"
@@ -109,6 +119,7 @@ print("Patched", manifest)
 final = path.read_text(encoding="utf-8")
 assert "oreLibraryDesugaringEnabled" in final and "desugar_jdk_libs" in final, "desugaring patch failed"
 assert "VERSION_17" in final, "Java 17 patch failed"
+assert "checkReleaseBuilds" in final, "lint patch failed"
 assert "android.permission.INTERNET" in manifest.read_text(encoding="utf-8"), "INTERNET patch failed"
 print("\n----- " + str(path) + " -----\n" + final)
 print("All Android patches OK ✅")

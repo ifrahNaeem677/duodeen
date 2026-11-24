@@ -30,6 +30,12 @@ android {
         multiDexEnabled = true
     }
 
+    // Fixes "Unexpected failure during lint analysis" (image_picker_android)
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+    }
+
     buildTypes {
         release {
             // Signing with the debug keys for now, so the APK installs directly.
